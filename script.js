@@ -9,8 +9,8 @@ var letterWidth = 1;
 var letterObjects = [];
 var changeTimer = 0;
 
-var backgroundColor = "#696969";
-var textColor = "#708090";
+var backgroundColor = "#2d2a2a";
+var textColor = "#678293";
 
 var words = ["HELLO", "JAVASCRIPT", "ORANGES", "IRIDESCENT", "ERROR", "HANNWE"];
 
@@ -38,23 +38,24 @@ window.onload = function () {
 }
 
 function step() {
-    if (changeTimer <= 0) {
-        changeTimer = 0;
-        for (let i = 0; i < letterObjects.length / 200; i++) {
-            let letterToChange = letterObjects[Math.floor(Math.random() * letterObjects.length)];
-            if (letterToChange.changeImunity > 0) {
-                continue;
-            }
-            letterToChange.letter = letters[Math.floor(Math.random() * letters.length)]
-            letterToChange.time = 1;
+    for (let i = 0; i < letterObjects.length / 200; i++) {
+        let letterToChange = letterObjects[Math.floor(Math.random() * letterObjects.length)];
+        if (letterToChange.changeImunity > 0) {
+            continue;
         }
+        letterToChange.letter = letters[Math.floor(Math.random() * letters.length)]
+        letterToChange.time = 1;
     }
-    changeTimer--;
 
     if (Math.random() < 0.0025) {
         addWord();
-        console.log("Word added!");
     }
+
+    if (changeTimer < 0) {
+        textColor = rotateHexHue(textColor, 1);
+        changeTimer = 6;
+    }
+    changeTimer--;
 
     for (let i = 0; i < letterObjects.length; i++) {
         letterObjects[i].step();
@@ -64,7 +65,7 @@ function step() {
 }
 
 function draw() {
-    ctx.fillStyle = "dimgray";
+    ctx.fillStyle = backgroundColor;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     for (let i = 0; i < letterObjects.length; i++) {
@@ -80,10 +81,10 @@ function Letter(x, y, row) {
     this.changeImunity = 0;
 
     this.step = function () {
-        if (this.time > 0.15) {
+        if (this.time > 0.1) {
             this.time -= 0.005;
         } else {
-            this.time = 0.15;
+            this.time = 0.1;
         }
         if (this.changeImunity > 0) {
             this.changeImunity--;
@@ -106,7 +107,14 @@ function Letter(x, y, row) {
     this.draw = function () {
         ctx.font = letterHeight + "px Consolas";
         ctx.fillStyle = lerpColor(backgroundColor, textColor, this.time);
+
+        ctx.shadowColor = ctx.fillStyle;
+        ctx.shadowBlur = letterWidth * this.time*0.4;
+
         ctx.fillText(this.letter, this.x, this.y + letterHeight);
+
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
     };
 }
 
@@ -169,4 +177,64 @@ async function addWord() {
 
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function rotateHexHue(hex, deg = 1) { // Thank you AI!
+    // Expand shorthand form (#RGB) to full form (#RRGGBB)
+    let fullHex = hex.replace(
+        /^#?([a-f\d])([a-f\d])([a-f\d])$/i,
+        (_, r, g, b) => `#${r}${r}${g}${g}${b}${b}`
+    );
+    // Strip leading #
+    fullHex = fullHex.replace(/^#/, '');
+
+    // Convert hex → RGB
+    const bigint = parseInt(fullHex, 16);
+    let r = (bigint >> 16) & 255;
+    let g = (bigint >> 8) & 255;
+    let b = (bigint) & 255;
+
+    // RGB → HSL
+    r /= 255; g /= 255; b /= 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h, s, l = (max + min) / 2;
+
+    if (max === min) {
+        h = s = 0; // achromatic
+    } else {
+        const d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        switch (max) {
+            case r: h = ((g - b) / d + (g < b ? 6 : 0)); break;
+            case g: h = ((b - r) / d + 2); break;
+            case b: h = ((r - g) / d + 4); break;
+        }
+        h *= 60;
+    }
+
+    // Rotate hue and wrap around [0,360)
+    h = (h + deg) % 360;
+    if (h < 0) h += 360;
+
+    // HSL → RGB
+    let q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    let p = 2 * l - q;
+    const hue2rgb = (p, q, t) => {
+        if (t < 0) t += 1;
+        if (t > 1) t -= 1;
+        if (t < 1 / 6) return p + (q - p) * 6 * t;
+        if (t < 1 / 2) return q;
+        if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+        return p;
+    };
+    r = hue2rgb(p, q, h / 360 + 1 / 3);
+    g = hue2rgb(p, q, h / 360);
+    b = hue2rgb(p, q, h / 360 - 1 / 3);
+
+    // RGB → hex
+    const toHex = x => {
+        const hexPart = Math.round(x * 255).toString(16).padStart(2, '0');
+        return hexPart;
+    };
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
