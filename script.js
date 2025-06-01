@@ -9,7 +9,7 @@ var letterWidth = 1;
 var letterObjects = [];
 var changeTimer = 0;
 
-var backgroundColor = "#2d2a2a";
+var backgroundColor = "#2a2a2a";
 var textColor = "#678293";
 
 var words = ["HELLO", "JAVASCRIPT", "ORANGES", "IRIDESCENT", "ERROR", "HANNWE"];
@@ -91,9 +91,9 @@ function Letter(x, y, row) {
         }
 
         if (this.row % 2 === 0) {
-            this.x += 0.1;
+            this.x += 0.05;
         } else {
-            this.x -= 0.1;
+            this.x -= 0.05;
         }
 
         if (this.x > canvas.width) {
